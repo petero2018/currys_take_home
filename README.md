@@ -72,3 +72,38 @@ Each file can override the shared variables (project name, location, environment
 ## pending documentation
 
 More detailed Terraform, data-pipeline, and Synapse usage notes will be added later as the exercise evolves.
+
+## github -> blob storage pipeline
+
+The DLT pipeline under `src/pipelines/github_pipeline.py` ingests pull-request metadata from any list of repositories and lands the data as Parquet files in Azure Blob/ADLS. Synapse serverless SQL can read those files directly, so the PR corpus is immediately queryable without running a dedicated SQL pool.
+
+### configuration
+
+1. Copy `src/pipelines/.dlt/secrets.example.toml` to `src/pipelines/.dlt/secrets.toml` (gitignored) and fill in:
+   - `sources.github.access_token` – GitHub PAT with `repo` scope.
+   - `destination.filesystem.credentials.account_name` and `account_key` – storage account the pipeline writes to.
+2. Export runtime env vars before running the pipeline:
+
+```
+export DLT_BUCKET_URL="abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"
+export GITHUB_REPOS="dlt-hub/dlt,apache/airflow"   # optional override, otherwise use config
+export GITHUB_MAX_ITEMS=200                         # optional limit for quick tests
+```
+
+### run locally
+
+```
+poetry install
+poetry run python -m pipelines.github_pipeline
+```
+
+Each repo gets its own dataset name (`<owner>_<repo>_pull_requests`). Downstream tools such as Synapse serverless SQL or Spark can attach directly to the Parquet files for analytics without incurring DWU costs.
+
+You can also set the repo list in `src/pipelines/.dlt/config.toml`:
+
+```
+[pipeline]
+repos = ["petero2018/learningPySpark", "apache/airflow"]
+```
+
+When this file exists, the pipeline reads it automatically (unless overridden by the `GITHUB_REPOS` env var), which makes managing multiple repositories easier than passing long env strings.

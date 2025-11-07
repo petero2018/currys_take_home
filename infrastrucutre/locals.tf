@@ -1,4 +1,3 @@
-# locals.tf
 
 locals {
   env_suffix               = replace(var.environment, "-", "")

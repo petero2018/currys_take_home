@@ -1,5 +1,3 @@
-# storage.tf
-
 resource "azurerm_storage_account" "datalake" {
   name                     = local.storage_account_name
   resource_group_name      = azurerm_resource_group.data.name
