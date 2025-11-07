@@ -17,7 +17,7 @@ SELECT TOP 100
     JSON_VALUE(pr.json_line, '$._dlt_load_id')          AS _dlt_load_id,
     JSON_VALUE(pr.json_line, '$._dlt_id')               AS _dlt_id
 FROM OPENROWSET(
-        BULK 'https://stcurrysprod.dfs.core.windows.net/currysprodfs/github/petero2018_currys_take_home_pull_requests/pull_requests/1762542629.476036.b1feef0dd4.jsonl.gz',
+        BULK 'https://stcurrysprod.dfs.core.windows.net/currysprodfs/github/petero2018_currys_take_home_pull_requests/pull_requests/',
         FORMAT = 'CSV',
         FIELDTERMINATOR = '0x0b',
         FIELDQUOTE      = '0x0b'
