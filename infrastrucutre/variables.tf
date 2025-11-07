@@ -56,3 +56,12 @@ variable "synapse_sql_pool_sku" {
   description = "SKU for the Synapse SQL pool (DW100c, DW200c, etc.)."
   default     = "DW100c"
 }
+
+variable "storage_blob_data_contributor_principals" {
+  description = "Principals (users/SPs/groups) to grant Storage Blob Data Contributor on the ADLS account."
+  type = list(object({
+    id   = string
+    type = string
+  }))
+  default = []
+}
