@@ -6,6 +6,6 @@ output "synapse_workspace_name" {
 }
 
 output "synapse_sql_pool_name" {
-  value       = azurerm_synapse_sql_pool.dw.name
-  description = "Dedicated SQL pool name."
+  value       = try(azurerm_synapse_sql_pool.dw[0].name, null)
+  description = "Dedicated SQL pool name (null when not created)."
 }
