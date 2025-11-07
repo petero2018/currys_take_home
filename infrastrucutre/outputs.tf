@@ -9,8 +9,3 @@ output "synapse_sql_pool_name" {
   description = "Dedicated SQL pool name (null when not created)."
 }
 */
-
-output "storage_account_key" {
-  value     = azurerm_storage_account.st.primary_access_key
-  sensitive = true
-}
