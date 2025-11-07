@@ -24,12 +24,13 @@ DEFAULT_REPOS: Tuple[Tuple[str, str], ...] = (
 def _filesystem_destination() -> filesystem:
     bucket_url = os.environ.get("DLT_BUCKET_URL")
     if not bucket_url:
+        bucket_url = dlt.config.get("pipeline.bucket_url", None)
+    if not bucket_url:
         raise RuntimeError(
-            "Set DLT_BUCKET_URL env var (e.g. abfss://fs@account.dfs.core.windows.net/path)."
+            "Provide a bucket URL via DLT_BUCKET_URL or pipeline.bucket_url in config."
         )
 
-    file_format = os.environ.get("DLT_FILE_FORMAT", "parquet")
-    return filesystem(bucket_url=bucket_url, file_format=file_format)
+    return filesystem(bucket_url=bucket_url, file_format="json")
 
 
 def load_pull_requests(org: str, repo: str, *, max_items: int | None = None) -> None:
@@ -79,7 +80,7 @@ def _resolve_repos() -> Tuple[Tuple[str, str], ...]:
     if config_repos:
         return _parse_repos(config_repos)
 
-    repos_from_file = dlt.config.value("pipeline.repos", default=None)
+    repos_from_file = dlt.config.get("pipeline.repos", None)
     if repos_from_file:
         return _parse_repos(repos_from_file)
 
