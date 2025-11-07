@@ -45,7 +45,7 @@ Put your Terraform-specific values into the same `.env` so they export automatic
 ```
 TF_VAR_synapse_sql_admin_password="<generated-strong-password>"
 TF_VAR_project_name="currys"
-TF_VAR_location="uksouth"
+TF_VAR_location="northeurope"
 TF_VAR_environment="dev"
 TF_VAR_create_synapse_sql_pool="false"  # switch to true only when you really need DW capacity
 TF_VAR_synapse_sql_pool_sku="DW100c"
