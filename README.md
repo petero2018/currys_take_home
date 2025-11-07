@@ -85,7 +85,7 @@ The DLT pipeline under `src/pipelines/github_pipeline.py` ingests pull-request m
 2. Export runtime env vars before running the pipeline:
 
 ```
-export DLT_BUCKET_URL="abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"
+export DLT_BUCKET_URL="abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"  # optional override, otherwise use config
 export GITHUB_REPOS="dlt-hub/dlt,apache/airflow"   # optional override, otherwise use config
 export GITHUB_MAX_ITEMS=200                         # optional limit for quick tests
 ```
@@ -97,13 +97,14 @@ poetry install
 poetry run python -m pipelines.github_pipeline
 ```
 
-Each repo gets its own dataset name (`<owner>_<repo>_pull_requests`). Downstream tools such as Synapse serverless SQL or Spark can attach directly to the Parquet files for analytics without incurring DWU costs.
+Each repo gets its own dataset name (`<owner>_<repo>_pull_requests`). Downstream tools such as Synapse serverless SQL or Spark can attach directly to the JSON outputs for analytics without incurring DWU costs.
 
-You can also set the repo list in `src/pipelines/.dlt/config.toml`:
+You can also set the repo list and bucket URL in `src/pipelines/.dlt/config.toml`:
 
 ```
 [pipeline]
 repos = ["petero2018/learningPySpark", "apache/airflow"]
+bucket_url = "abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"
 ```
 
-When this file exists, the pipeline reads it automatically (unless overridden by the `GITHUB_REPOS` env var), which makes managing multiple repositories easier than passing long env strings.
+When this file exists, the pipeline reads it automatically (unless overridden by the `GITHUB_REPOS` or `DLT_BUCKET_URL` env vars), which makes managing multiple repositories and destinations easier than passing long env strings.
