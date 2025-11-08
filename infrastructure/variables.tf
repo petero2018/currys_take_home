@@ -53,22 +53,12 @@ variable "synapse_sql_admin_password" {
   type        = string
   description = "Administrator password for the Synapse workspace."
   sensitive   = true
-
-  validation {
-    condition     = (var.deploy_synapse_arm == false) || (length(var.synapse_sql_admin_password) >= 12)
-    error_message = "Synapse administrator password must be at least 12 characters."
-  }
 }
 
 variable "synapse_user_object_id" {
   type        = string
   description = "Azure AD object ID to grant Synapse Administrator and storage access (your user or group)."
   default     = ""
-
-  validation {
-    condition     = (var.deploy_synapse_arm == false) || (trim(var.synapse_user_object_id) != "")
-    error_message = "Set synapse_user_object_id when deploy_synapse_arm is true."
-  }
 }
 
 variable "synapse_allow_all_connections" {
