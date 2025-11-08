@@ -48,7 +48,7 @@ Each file can override the shared variables (project name, location, environment
 
 ### run terraform via docker
 
-A helper image + Makefile let you run Terraform (for resource group + storage provisioning, plus optional Synapse ARM deployment) in a container (no local install).
+A helper image + Makefile let you run Terraform (for the resource group and ADLS storage) in a container (no local install).
 
 ```
 # build the helper image (Terraform + Azure CLI)
@@ -59,16 +59,6 @@ make docker-infra-shell
 ```
 
 Once inside the shell, run the usual Terraform commands (`terraform init`, `terraform plan -var-file=...`, etc.). By default the Makefile looks for `infrastructure/.env`; copy `infra.env.sample` to `.env`, fill it in, and the vars will be passed via `--env-file` so Terraform can authenticate. Override `INFRA_ENV_FILE` when invoking `make` if your credentials live elsewhere.
-
-#### optional: deploy synapse via ARM template
-
-If `TF_VAR_deploy_synapse_arm=true`, Terraform wraps the exported Azure ARM template located at `infrastructure/synapse/template.json` and wires it to the storage account provisioned earlier. Set the following variables in `infrastructure/.env` (see the sample file):
-
-- `TF_VAR_synapse_sql_admin_login` / `TF_VAR_synapse_sql_admin_password`
-- `TF_VAR_synapse_user_object_id` (your Azure AD object ID so Studio access works)
-- `TF_VAR_synapse_allow_all_connections` and `TF_VAR_synapse_azure_ad_only_authentication` (optional flags)
-
-Running `terraform apply` from the Docker shell will then deploy the Synapse workspace and expose its dev + serverless endpoints via Terraform outputs. If you leave `deploy_synapse_arm=false`, the ARM template step is skipped.
 
 
 ## github -> blob storage pipeline
