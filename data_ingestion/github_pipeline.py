@@ -3,17 +3,12 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 from typing import Iterable, Sequence, Tuple
 
-PROJECT_SRC = Path(__file__).resolve().parents[1]
-if str(PROJECT_SRC) not in sys.path:
-    sys.path.append(str(PROJECT_SRC))
-
 import dlt
 from dlt.destinations import filesystem
-from pipelines.github import github_reactions
+from github import github_reactions
 
 
 DEFAULT_REPOS: Tuple[Tuple[str, str], ...] = (

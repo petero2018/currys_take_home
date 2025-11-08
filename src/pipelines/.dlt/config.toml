@@ -1,3 +1,0 @@
-[pipeline]
-repos = ["petero2018/currys_take_home"]
-bucket_url = "abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"

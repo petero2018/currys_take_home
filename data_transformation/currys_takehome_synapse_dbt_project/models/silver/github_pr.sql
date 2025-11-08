@@ -1,4 +1,6 @@
-SELECT TOP 100
+with source_data as (
+
+SELECT
     JSON_VALUE(pr.json_line, '$.number')                AS pr_number,
     JSON_VALUE(pr.json_line, '$.url')                   AS pr_url,
     JSON_VALUE(pr.json_line, '$.title')                 AS pr_title,
@@ -24,3 +26,8 @@ FROM OPENROWSET(
      )
      WITH (json_line nvarchar(max))
      AS pr;
+
+)
+
+select *
+from source_data

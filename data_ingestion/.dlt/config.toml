@@ -1,0 +1,3 @@
+[pipeline]
+repos = ["dlt-hub/dlt"]
+bucket_url = "abfss://<filesystem>@<account>.dfs.core.windows.net/github"

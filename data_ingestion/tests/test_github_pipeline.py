@@ -1,6 +1,6 @@
 import pytest
 
-from pipelines import github_pipeline
+import github_pipeline
 
 
 def test_parse_repos_handles_list_and_strings(monkeypatch):
