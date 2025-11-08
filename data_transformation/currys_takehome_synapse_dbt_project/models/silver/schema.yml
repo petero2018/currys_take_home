@@ -1,0 +1,6 @@
+
+version: 2
+
+models:
+  - name: github_pr
+    description: "github_pr model"
