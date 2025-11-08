@@ -28,35 +28,6 @@ variable "environment" {
   }
 }
 
-variable "synapse_sql_admin_login" {
-  type        = string
-  description = "Administrator login for the Synapse workspace."
-  default     = "synadmin"
-}
-
-variable "synapse_sql_admin_password" {
-  type        = string
-  description = "Administrator password for the Synapse workspace."
-  sensitive   = true
-
-  validation {
-    condition     = length(var.synapse_sql_admin_password) >= 12
-    error_message = "Synapse administrator password must be at least 12 characters."
-  }
-}
-
-variable "create_synapse_sql_pool" {
-  type        = bool
-  description = "Whether to provision the dedicated Synapse SQL pool. Disable to avoid DWU charges."
-  default     = false
-}
-
-variable "synapse_sql_pool_sku" {
-  type        = string
-  description = "SKU for the Synapse SQL pool (DW100c, DW200c, etc.)."
-  default     = "DW100c"
-}
-
 variable "storage_blob_data_contributor_principals" {
   description = "Principals (users/SPs/groups) to grant Storage Blob Data Contributor on the ADLS account."
   type = list(object({
@@ -64,4 +35,46 @@ variable "storage_blob_data_contributor_principals" {
     type = string
   }))
   default = []
+}
+
+variable "deploy_synapse_arm" {
+  description = "Whether to deploy the Synapse workspace via the provided ARM template."
+  type        = bool
+  default     = false
+}
+
+variable "synapse_sql_admin_login" {
+  type        = string
+  description = "Administrator login for the Synapse workspace (used by dbt or SQL clients)."
+  default     = "synadmin"
+}
+
+variable "synapse_sql_admin_password" {
+  type        = string
+  description = "Administrator password for the Synapse workspace."
+  sensitive   = true
+}
+
+variable "synapse_user_object_id" {
+  type        = string
+  description = "Azure AD object ID to grant Synapse Administrator and storage access (your user or group)."
+  default     = ""
+}
+
+variable "synapse_allow_all_connections" {
+  type        = bool
+  description = "Allow public endpoints (0.0.0.0) for Synapse firewall."
+  default     = true
+}
+
+variable "synapse_azure_ad_only_authentication" {
+  type        = bool
+  description = "Enforce Azure AD only authentication for Synapse."
+  default     = true
+}
+
+variable "synapse_tags" {
+  type        = map(any)
+  description = "Optional tags to apply to the Synapse workspace via the ARM template."
+  default     = {}
 }

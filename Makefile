@@ -20,10 +20,16 @@ DOCKER_DATA_INGESTION_IMAGE_NAME ?= currys-data-ingestion
 DOCKER_DATA_INGESTION_IMAGE_TAG ?= $(PYTHON_VERSION)-$(GIT_VERSION)
 DOCKER_DATA_INGESTION_IMAGE ?= $(DOCKER_REPOSITORY)/$(DOCKER_DATA_INGESTION_IMAGE_NAME):$(DOCKER_DATA_INGESTION_IMAGE_TAG)
 
+DATA_TRANSFORMATION_DIR ?= data_transformation
+DOCKER_DATA_TRANSFORM_IMAGE_NAME ?= currys-data-transform
+DOCKER_DATA_TRANSFORM_IMAGE_TAG ?= $(PYTHON_VERSION)-$(GIT_VERSION)
+DOCKER_DATA_TRANSFORM_IMAGE ?= $(DOCKER_REPOSITORY)/$(DOCKER_DATA_TRANSFORM_IMAGE_NAME):$(DOCKER_DATA_TRANSFORM_IMAGE_TAG)
+TRANSFORM_ENV_FILE ?= $(DATA_TRANSFORMATION_DIR)/.env
+
 .DEFAULT_GOAL := help
 SHELL := bash
 
-.PHONY: help docker-infra-build docker-infra-shell docker-data-ingestion-build docker-data-ingestion-shell
+.PHONY: help docker-infra-build docker-infra-shell docker-data-ingestion-build docker-data-ingestion-shell docker-data-transform-build docker-data-transform-shell
 
 help:
 	@echo "Infrastructure targets:"
@@ -33,6 +39,10 @@ help:
 	@echo "Data ingestion targets:"
 	@echo "  docker-data-ingestion-build   Build the Poetry-based data ingestion image"
 	@echo "  docker-data-ingestion-shell   Open a shell inside the data ingestion image"
+	@echo ""
+	@echo "Data transformation targets:"
+	@echo "  docker-data-transform-build   Build the dbt transformation image"
+	@echo "  docker-data-transform-shell   Open a shell with data_transformation/.env loaded"
 
 
 docker-infra-build:
@@ -78,4 +88,24 @@ docker-data-ingestion-shell: docker-data-ingestion-build
 		-v $(CURDIR):/app \
 		-w /app/$(DATA_INGESTION_DIR) \
 		$(DOCKER_DATA_INGESTION_IMAGE) \
+		bash
+
+docker-data-transform-build:
+	@echo "Building data transformation image $(DOCKER_DATA_TRANSFORM_IMAGE)"
+	$(DOCKER) build \
+		--file docker/data_transformation_processes/Dockerfile \
+		--build-arg DOCKER_REPOSITORY=$(DOCKER_REPOSITORY) \
+		--build-arg PYTHON_VERSION=$(PYTHON_VERSION) \
+		--build-arg PYTHON_FLAVOUR=$(PYTHON_FLAVOUR) \
+		--build-arg POETRY_VERSION=$(POETRY_VERSION) \
+		--tag $(DOCKER_DATA_TRANSFORM_IMAGE) \
+		.
+
+docker-data-transform-shell: docker-data-transform-build
+	@echo "Launching data transformation shell from $(DOCKER_DATA_TRANSFORM_IMAGE)"
+	env_file_flag=$$( [ -f $(TRANSFORM_ENV_FILE) ] && printf -- "--env-file $(TRANSFORM_ENV_FILE)" ); \
+	$(DOCKER) run --rm -it $$env_file_flag \
+		-v $(CURDIR):/app \
+		-w /app/$(DATA_TRANSFORMATION_DIR) \
+		$(DOCKER_DATA_TRANSFORM_IMAGE) \
 		bash
