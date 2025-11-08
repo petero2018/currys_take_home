@@ -48,7 +48,7 @@ Each file can override the shared variables (project name, location, environment
 
 ### run terraform via docker
 
-A helper image + Makefile let you run Terraform in a container (no local install):
+A helper image + Makefile let you run Terraform (for resource group + storage provisioning) in a container (no local install). Synapse itself is provisioned manually in the Azure portal.
 
 ```
 # build the helper image (Terraform + Azure CLI)
