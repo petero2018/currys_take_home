@@ -1,23 +1,23 @@
 WITH source_data AS (
 
     SELECT
-        pr.number                    AS pr_number,
-        pr.url                       AS pr_url,
-        pr.title                     AS pr_title,
-        pr.body                      AS pr_body,
-        pr.author__login             AS author_login,
-        pr.author__avatar_url        AS author_avatar_url,
-        pr.author__url               AS author_url,
-        pr.author_association        AS author_association,
-        pr.state                     AS pr_state,
-        pr.closed                    AS is_closed,
-        pr.created_at                AS created_at,
-        pr.updated_at                AS updated_at,
-        pr.closed_at                 AS closed_at,
-        pr.reactions_total_count     AS reactions_total_count,
-        pr.comments_total_count      AS comments_total_count,
-        pr._dlt_load_id              AS _dlt_load_id,
-        pr._dlt_id                   AS _dlt_id
+        CAST(pr.number AS INTEGER)        AS pr_number,
+        CAST(pr.url AS VARCHAR)           AS pr_url,
+        CAST(pr.title AS VARCHAR)         AS pr_title,
+        CAST(pr.body AS VARCHAR)          AS pr_body,
+        CAST(pr.author__login AS VARCHAR) AS author_login,
+        CAST(pr.author__avatar_url AS VARCHAR) AS author_avatar_url,
+        CAST(pr.author__url AS VARCHAR)   AS author_url,
+        CAST(pr.author_association AS VARCHAR) AS author_association,
+        CAST(pr.state AS VARCHAR)         AS pr_state,
+        CAST(pr.closed AS BOOLEAN)        AS is_closed,
+        CAST(pr.created_at AS TIMESTAMP)  AS created_at,
+        CAST(pr.updated_at AS TIMESTAMP)  AS updated_at,
+        CAST(pr.closed_at AS TIMESTAMP)   AS closed_at,
+        CAST(pr.reactions_total_count AS INTEGER) AS reactions_total_count,
+        CAST(pr.comments_total_count AS INTEGER) AS comments_total_count,
+        CAST(pr._dlt_load_id AS VARCHAR)  AS _dlt_load_id,
+        CAST(pr._dlt_id AS VARCHAR)       AS _dlt_id
     FROM read_ndjson(
             'azure://currysprodfs/github/petero2018_currys_take_home_pull_requests/pull_requests/*.jsonl.gz'
          ) pr
