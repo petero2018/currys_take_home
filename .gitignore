@@ -210,6 +210,5 @@ __marimo__/
 src/pipelines/.dlt/secrets.toml
 
 # dbt profiles with credentials
-data_transformation/dbt_profiles/
 data_transformation/logs/
 data/
