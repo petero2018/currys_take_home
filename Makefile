@@ -93,6 +93,7 @@ docker-data-ingestion-shell: docker-data-ingestion-build
 docker-data-transform-build:
 	@echo "Building data transformation image $(DOCKER_DATA_TRANSFORM_IMAGE)"
 	$(DOCKER) build \
+		--platform=linux/amd64 \
 		--file docker/data_transformation_processes/Dockerfile \
 		--build-arg DOCKER_REPOSITORY=$(DOCKER_REPOSITORY) \
 		--build-arg PYTHON_VERSION=$(PYTHON_VERSION) \
@@ -104,7 +105,7 @@ docker-data-transform-build:
 docker-data-transform-shell: docker-data-transform-build
 	@echo "Launching data transformation shell from $(DOCKER_DATA_TRANSFORM_IMAGE)"
 	env_file_flag=$$( [ -f $(TRANSFORM_ENV_FILE) ] && printf -- "--env-file $(TRANSFORM_ENV_FILE)" ); \
-	$(DOCKER) run --rm -it $$env_file_flag \
+	$(DOCKER) run --platform=linux/amd64 --rm -it $$env_file_flag \
 		-v $(CURDIR):/app \
 		-w /app/$(DATA_TRANSFORMATION_DIR) \
 		$(DOCKER_DATA_TRANSFORM_IMAGE) \

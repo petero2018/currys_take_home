@@ -9,7 +9,8 @@ resource "azurerm_storage_account" "datalake" {
   min_tls_version          = "TLS1_2"
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "default" {
-  name               = local.filesystem_name
-  storage_account_id = azurerm_storage_account.datalake.id
+resource "azurerm_storage_container" "duck" {
+  name                  = local.filesystem_name
+  storage_account_name    = azurerm_storage_account.datalake.name
+  container_access_type = "private"
 }

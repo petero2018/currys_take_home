@@ -10,6 +10,6 @@ output "storage_primary_access_key" {
 }
 
 output "storage_filesystem_name" {
-  value       = azurerm_storage_data_lake_gen2_filesystem.default.name
-  description = "Primary filesystem used by Synapse."
+  value       = azurerm_storage_container.duck.name
+  description = "Primary filesystem used by duck."
 }
