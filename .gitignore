@@ -212,3 +212,6 @@ src/pipelines/.dlt/secrets.toml
 # dbt profiles with credentials
 data_transformation/logs/
 data/
+
+
+.DS_Store
