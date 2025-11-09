@@ -1,0 +1,12 @@
+currys_takehome_duckdb:
+  target: prod
+  outputs:
+    prod:
+      type: duckdb
+      path: /app/data_transformation/dbt.duckdb    # file inside the container/host
+      threads: 4
+      extensions:
+        - httpfs
+        - azure                # DuckDB >=0.10
+      settings:
+        azure_storage_connection_string: "DefaultEndpointsProtocol=https;AccountName={{ env_var('AZURE_STORAGE_ACCOUNT_NAME') }};AccountKey={{ env_var('AZURE_STORAGE_ACCOUNT_KEY') }};EndpointSuffix=core.windows.net"

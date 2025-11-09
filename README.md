@@ -1,121 +1,141 @@
 # currys_take_home
-take home exercise
 
-## set up python environment
+This repository contains a three-stage, fully containerised take-home exercise that covers infrastructure provisioning, data ingestion, and data transformation. Each stage is accessible through the project Makefile so you can work on them independently or end-to-end.
 
-#### pyenv
-```
-pyenv versions
-pyenv install -l
-pyenv install 3.13.7 
-pyenv local 3.13.7
-```
+## Prerequisites
 
-#### poetry env
-```
-poetry env list --full-path
-poetry env use 3.13.7  Activates or creates a new virtualenv for the current project.
-eval $(poetry env activate) Activates virtualenv
-which python 
-```
+- Docker installed and running locally
+- Make (for the convenience targets)
+- Access to an Azure subscription with permissions to create resources
 
+## Project stages
 
-## setup terraform
+1. **Infrastructure** – Terraform provisions the Azure lakehouse landing zone (resource group, storage, permissions).
+2. **Data ingestion** – A DLT pipeline extracts GitHub pull-request data and loads it into Azure Blob Storage.
+3. **Data transformation** – dbt builds curated models on top of DuckDB connected to the blob storage.
 
-```
-brew install azure-cli      -- install
-az login choose             -- the subscription tied to your account
-az account show             -- verify you’re on the right subscription ID
-export SUBSCRIPTION_ID=$(az account show --query id -o tsv) -- assign subscription id to env var
-```
+---
 
-Before running Terraform copy `infrastructure/infra.env.sample` (or `infra.env.example` with realistic values) to `infrastructure/.env`, fill in your Azure service principal (`ARM_*`) and `TF_VAR_*` entries, and the Make targets will pick them up automatically via `--env-file`.
+## Infrastructure
 
+The IaC module sets up the data lake foundation in Azure. The MVP stores curated data in DuckDB while keeping the lake accessible to Synapse, Databricks, or any other MPP engine you may add later.
 
-Environment-specific settings live under `infrastructure/environments/`. Two starter files are included:
+### Configure Azure credentials
 
-- `environments/dev.tfvars`
-- `environments/prod.tfvars`
-
-Plan/apply for prod
+Copy `infrastructure/infra.env.sample` to `infrastructure/.env` and fill in the required environment variables:
 
 ```
-cd infrastructure
-terraform plan -var-file=environments/prod.tfvars
+ARM_CLIENT_ID=""
+ARM_CLIENT_SECRET=""
+ARM_TENANT_ID=""
+ARM_SUBSCRIPTION_ID=""
 ```
 
-Each file can override the shared variables (project name, location, environment). Add more files (e.g., `qa.tfvars`) or use Terraform Cloud/Workspaces later—this layout keeps the repo ready for additional environments whenever you need them.
+These values come from an Azure Service Principal (SP). Create one with the Azure CLI (needs the `Contributor` role on the subscription):
 
-### run terraform via docker
+1. Install Azure CLI if needed:  
+   - macOS: `brew update && brew install azure-cli`  
+   - Ubuntu/Debian: `curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash`  
+   - Windows: `winget install --id Microsoft.AzureCLI`
+2. Authenticate: `az login`
+3. Capture subscription and tenant IDs:
 
-A helper image + Makefile let you run Terraform (for resource group + storage provisioning, plus optional Synapse ARM deployment) in a container (no local install).
+   ```bash
+   export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+   export ARM_TENANT_ID="$(az account show --query tenantId -o tsv)"
+   ```
+
+4. Create the SP and copy the output into `infrastructure/.env`:
+
+   ```bash
+   az ad sp create-for-rbac \
+     --name "terraform-sp" \
+     --role Contributor \
+     --scopes "/subscriptions/$ARM_SUBSCRIPTION_ID"
+   ```
+
+### Provision the platform
+
+Launch the infrastructure container:
 
 ```
-# build the helper image (Terraform + Azure CLI)
-make docker-infra-build
-
-# start a shell with all env vars loaded; run terraform init/plan/apply manually
 make docker-infra-shell
 ```
 
-Once inside the shell, run the usual Terraform commands (`terraform init`, `terraform plan -var-file=...`, etc.). By default the Makefile looks for `infrastructure/.env`; copy `infra.env.sample` to `.env`, fill it in, and the vars will be passed via `--env-file` so Terraform can authenticate. Override `INFRA_ENV_FILE` when invoking `make` if your credentials live elsewhere.
-
-#### optional: deploy synapse via ARM template
-
-If `TF_VAR_deploy_synapse_arm=true`, Terraform wraps the exported Azure ARM template located at `infrastructure/synapse/template.json` and wires it to the storage account provisioned earlier. Set the following variables in `infrastructure/.env` (see the sample file):
-
-- `TF_VAR_synapse_sql_admin_login` / `TF_VAR_synapse_sql_admin_password`
-- `TF_VAR_synapse_user_object_id` (your Azure AD object ID so Studio access works)
-- `TF_VAR_synapse_allow_all_connections` and `TF_VAR_synapse_azure_ad_only_authentication` (optional flags)
-
-Running `terraform apply` from the Docker shell will then deploy the Synapse workspace and expose its dev + serverless endpoints via Terraform outputs. If you leave `deploy_synapse_arm=false`, the ARM template step is skipped.
-
-
-## github -> blob storage pipeline
-
-The DLT pipeline under `data_ingestion/github_pipeline.py` ingests pull-request metadata from any list of repositories and lands the data as JSONL files in Azure Blob/ADLS. Synapse serverless SQL can read those files directly, so the PR corpus is immediately queryable without running a dedicated SQL pool.
-
-### configuration
-
-1. Copy `data_ingestion/.dlt/secrets.example.toml` to `data_ingestion/.dlt/secrets.toml` (gitignored) and fill in:
-   - `sources.github.access_token` – GitHub PAT with `repo` scope.
-   - `destination.filesystem.credentials` – set `type = "azure"` and provide either `account_name` + `account_key`, or swap `account_key` for a `sas_token`. These values are passed directly to the Azure Blob/Data Lake filesystem driver.
-
-Optional
-2. Export runtime env vars before running the pipeline:
+Inside the shell run the standard Terraform workflow:
 
 ```
-export DLT_BUCKET_URL="abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"  # optional override, otherwise use config
-export GITHUB_REPOS="dlt-hub/dlt,apache/airflow"   # optional override, otherwise use config
-export GITHUB_MAX_ITEMS=200                         # optional limit for quick tests
+terraform init
+terraform validate
+terraform plan
+terraform apply
 ```
 
-### run locally
+`prod.tfvars` is used by default; pass `-var-file=dev.tfvars` (or any custom tfvars) to target another environment or region.
+
+---
+
+## Data ingestion
+
+The ingestion stage lives under `data_ingestion/` and relies on DLT to read GitHub pull requests and land them in the Azure storage account you created above.
+
+### Secrets and config
+
+1. Copy `data_ingestion/.dlt/secrets.example.toml` to `data_ingestion/.dlt/secrets.toml` and populate:
+   - `azure_storage_account_name`
+   - `azure_storage_account_key`
+   - `github_access_token`
+2. Update `data_ingestion/.dlt/config.toml`:
+
+   ```toml
+   [pipeline]
+   repos = ["org/repo", "another/repo"]
+   bucket_url = "azure://<storage-account>/<container>"
+   ```
+
+### Generate a GitHub Personal Access Token (PAT)
+
+DLT needs a PAT with `repo` scope to download repository contents. Create one via <https://github.com/settings/tokens> → **Generate new token (classic)**, name it (e.g. `dlt-github-access`), select an expiry that suits you, tick `repo`, then copy the token once displayed and paste it into `secrets.toml`.
+
+### Run the pipeline
+
+Start the ingestion container:
 
 ```
-poetry --directory data_ingestion install
-poetry --directory data_ingestion run python github_pipeline.py
-```
-
-Each repo gets its own dataset name (`<owner>_<repo>_pull_requests`). Downstream tools such as Synapse serverless SQL or Spark can attach directly to the JSON outputs for analytics without incurring DWU costs.
-
-You can also set the repo list and bucket URL in `data_ingestion/.dlt/config.toml`:
-
-```
-[pipeline]
-repos = ["petero2018/learningPySpark", "apache/airflow"]
-bucket_url = "abfss://currysprodfs@stcurrysprod.dfs.core.windows.net/github"
-```
-
-When this file exists, the pipeline reads it automatically (unless overridden by the `GITHUB_REPOS` or `DLT_BUCKET_URL` env vars), which makes managing multiple repositories and destinations easier than passing long env strings.
-
-### run inside docker
-
-If you prefer containerised execution, use the Make targets:
-
-```
-make docker-data-ingestion-build
 make docker-data-ingestion-shell
 ```
 
-The shell drops you into `/app/data_ingestion` inside the Poetry image so you can run `poetry run python github_pipeline.py` (or any other commands) without installing dependencies locally.
+Inside the shell you can:
+
+- Run tests: `poetry run pytest`
+- Execute the pipeline: `poetry run python <pipeline_entrypoint>.py`
+- Package and invoke the CLI variant if provided: `poetry run python <package_cli_command>`
+
+The pipeline downloads pull-request histories for the configured repositories (last 30 days by default) and saves the JSONL output to blob storage. Additional parameters can be supplied through `config.toml`.
+
+---
+
+## Data transformation
+
+The dbt project lives in `data_transformation/` and connects DuckDB to the same Azure Blob Storage bucket.
+
+### Environment variables
+
+Copy `data_transformation/env.secrets.sample` to `data_transformation/.env` and fill in the connection values emitted by Terraform. The file is mounted into the container and not committed to git.
+
+### Run dbt
+
+Provision the transformation container:
+
+```
+make docker-data-transform-shell
+```
+
+From within the shell:
+
+- Validate connectivity: `poetry run dbt debug`
+- Build models: `poetry run dbt run`
+- Run tests: `poetry run dbt test`
+- Or do everything in one go: `poetry run dbt build`
+
+This stage materialises curated tables (e.g. `silver.github_pr`) in DuckDB, sourcing the raw JSON files staged by DLT.
