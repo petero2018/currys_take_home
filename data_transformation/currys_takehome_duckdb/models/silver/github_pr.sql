@@ -18,9 +18,8 @@ WITH source_data AS (
         pr.comments_total_count      AS comments_total_count,
         pr._dlt_load_id              AS _dlt_load_id,
         pr._dlt_id                   AS _dlt_id
-    FROM read_json(
-            'https://stcurrysprod.blob.core.windows.net/currysprodfs/github/petero2018_currys_take_home_pull_requests/pull_requests/1762634901.8250883.055c911cfe.jsonl.gz',
-            format='newline_delimited'
+    FROM read_ndjson(
+            'azure://currysprodfs/github/petero2018_currys_take_home_pull_requests/pull_requests/*.jsonl.gz'
          ) pr
 )
 
