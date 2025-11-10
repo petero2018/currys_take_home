@@ -139,3 +139,112 @@ From within the shell:
 - Or do everything in one go: `poetry run dbt build`
 
 This stage materialises curated tables (e.g. `silver.github_pr`) in DuckDB, sourcing the raw JSON files staged by DLT.
+
+
+## Architecture Overview and Future Direction
+
+This repository demonstrates a **Minimum Viable Product (MVP)** for a modular, portable data platform.  
+Even though the current solution is intentionally lightweight, the architecture was designed so it can scale into a fully production-ready lakehouse.
+
+### Modular Structure
+
+The project is split into **three independent components**, each following clear separation of concerns:
+
+1. **Data Ingestion** – pipelines that extract and land raw data into Azure Blob Storage  
+2. **Data Transformation** – dbt + DuckDB pipelines that clean, structure and analyze data  
+3. **Infrastructure** – Terraform definitions for provisioning cloud resources
+
+This modularity is intentional. In a production setup, these three components would typically live in *three separate repositories*, each with its own CI/CD pipeline.
+
+### Production-Ready Packaging
+
+If this platform were promoted to production:
+
+- each component would be **containerized**  
+- each component would have its own **CI/CD workflow**, responsible for  
+  - running unit and integration tests  
+  - automatically deploying code into Dev and Prod environments  
+- the Terraform layer would manage at least **dev** and **production** environments  
+- the ingestion and transformation code is already written to be **environment-agnostic** and **portable**  
+- configuration is externalised so the codebase can be reused across multiple environments with minimal changes
+
+### Current MVP Lakehouse Implementation
+
+Conceptually, this project follows a **lakehouse architecture**:
+
+- The **data lake** is Azure Blob Storage (scalable, cost-efficient, simple).  
+- The ingestion pipeline writes all raw data into Blob Storage.  
+- DuckDB acts as the **lightweight query engine** for exploration and transformations.  
+- dbt orchestrates the logical layers (Bronze → Silver → Gold), enabling reproducible transformations even at small scale.
+
+Because the dataset is small, using heavyweight platforms (Synapse, Databricks, Snowflake, etc.) is not necessary. DuckDB provides a minimal, efficient way to transform and analyze the data locally or inside a container.
+
+### Future Lakehouse Expansion
+
+The platform is deliberately structured so it can be extended into a full enterprise lakehouse without redesigning ingestion:
+
+- The ingestion pipelines **already write to Blob Storage**, meaning the lake layer is ready.  
+- In the future, the business could choose any warehousing layer on top of the lake, for example:
+  - **Azure Synapse**
+  - **Azure Databricks**
+  - **Snowflake**
+  - **Any MPP (massively parallel processing) query engine**
+
+Once the warehouse layer is selected, it can simply connect to the existing Blob Storage containers and take over the Bronze/Silver/Gold transformation layers at scale.
+
+The current MVP demonstrates the architectural intent while keeping the solution intentionally lightweight.
+
+### Future Orchestration Layer
+
+In addition to the ingestion and transformation components, a production-grade data platform requires a dedicated **orchestration layer**.  
+This orchestrator is responsible for scheduling, coordinating, and monitoring all data workflows across the platform.
+
+There are multiple orchestration tools available, both open-source and fully managed. The choice depends on organisational strategy, platform maturity, and long-term scalability requirements.
+
+#### Orchestration Options
+
+A non-exhaustive list of options includes:
+
+- **Apache Airflow** – open-source, highly flexible, widely adopted  
+- **Managed Airflow** on Azure (MWAA equivalent)  
+- **Azure Data Factory (ADF)** – serverless, managed orchestration service native to Azure  
+- **Built-in orchestration capabilities of MPP platforms**, such as:
+  - Azure Databricks Jobs
+  - Azure Synapse Pipelines
+  - Other vendor-provided schedulers
+
+Any chosen orchestrator should meet the following criteria:
+
+1. **Federated Control**  
+   It must be able to orchestrate ingestion and transformation pipelines *across the entire data platform*, regardless of where individual workloads run.
+
+2. **Cross-environment operability**  
+   It should support Dev, Staging, and Prod environments and allow controlled promotion of workflows between them.
+
+3. **Cross-cloud and cross-account capability**  
+   As the data platform grows, it may integrate:
+   - multiple Azure subscriptions  
+   - additional cloud providers  
+   - separate infrastructure domains  
+   A suitable orchestrator must operate independently above these layers.
+
+4. **Full-pipeline coverage**  
+   The orchestrator must be capable of coordinating:
+   - data ingestion pipelines  
+   - transformation workflows (Bronze → Silver → Gold)  
+   - table refresh jobs  
+   - downstream analytics and dashboard refresh processes  
+
+#### Strategic Considerations
+
+The choice of orchestration system is a **strategic architectural decision**.  
+It defines how the entire organisation manages data movement and transformations at scale.
+
+A well-chosen orchestrator:
+
+- unifies the entire platform  
+- provides a central point of automation and observability  
+- ensures consistent deployment and execution across environments  
+- remains flexible enough to integrate future ingestion pipelines or MPP platforms
+
+Regardless of the tool selected, the orchestration layer must operate as a **federated, platform-wide system**, independent of any single component, and capable of coordinating workflows end-to-end across the full data lifecycle.
