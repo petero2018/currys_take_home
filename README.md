@@ -248,3 +248,99 @@ A well-chosen orchestrator:
 - remains flexible enough to integrate future ingestion pipelines or MPP platforms
 
 Regardless of the tool selected, the orchestration layer must operate as a **federated, platform-wide system**, independent of any single component, and capable of coordinating workflows end-to-end across the full data lifecycle.
+
+
+
+## Testing and Deployment Strategy
+
+In a production setup, testing and deployment would be handled through a structured CI/CD workflow, applied independently to each component of the platform (ingestion, transformation, infrastructure).
+
+#### Testing
+
+Each repository would run the following checks as part of its CI pipeline:
+
+1. **Unit Tests**
+   - Python unit tests for ingestion logic
+   - dbt tests (schema tests, data quality tests)
+   - Terraform validation (`terraform fmt`, `terraform validate`)
+
+2. **Integration Tests**
+   - For ingestion: validate end-to-end extraction → landing in Blob Storage  
+   - For transformation: run dbt models against a temporary DuckDB or dev warehouse  
+   - For infrastructure: Terraform plan executed in CI to confirm changes
+
+3. **Static Checks**
+   - Linting (flake8, black, sqlfluff)
+   - Security scanning (Trivy / GitHub Advanced Security)
+   - Dependency vulnerability checks
+
+#### Deployment
+
+Deployment would follow a multi-environment workflow:
+
+1. Changes merged to `main` trigger:
+   - Apply to **Dev** environment automatically
+2. After validation, a manual approval deploys to **Production**
+3. Infrastructure changes use Terraform with:
+   - Remote state
+   - CI-controlled plans and applies
+4. Dockerized ingestion and transformation jobs are deployed using:
+   - Airflow / ADF / Databricks Jobs (depending on orchestration choice)
+
+The current MVP is written to be fully portable and ready for this multi-environment CI/CD setup.
+
+
+## Pipeline Monitoring and Observability
+
+In a production data platform, reliability and performance monitoring are essential.  
+Several layers of monitoring would be implemented:
+
+#### Orchestration-Level Monitoring
+
+Regardless of the orchestrator (Airflow, ADF, Databricks Jobs), the system would provide:
+
+- Task-level execution tracking  
+- Job duration dashboards  
+- Failure alerts  
+- Retry visibility  
+- SLA / timeout monitoring  
+
+These provide the primary visibility into pipeline performance and stability.
+
+#### Data Quality Monitoring
+
+dbt provides built-in tests to monitor:
+
+- schema consistency  
+- null value violations  
+- uniqueness constraints  
+- referential integrity  
+
+Failures trigger alerts in the orchestrator.
+
+For more advanced setups, a tool like **Great Expectations** or **Monte Carlo** can be added.
+
+#### Infrastructure & Storage Monitoring
+
+Azure-native monitoring services:
+
+- **Azure Monitor** (latency, errors, network throughput)
+- **Storage Analytics** (Blob Storage read/write times, throttling)
+- **Log Analytics + Kusto queries** to troubleshoot ingestion issues
+
+#### Transformation Engine Monitoring
+
+For DuckDB:
+- execution logs captured by the orchestrator  
+- duration metrics for dbt run steps  
+- row counts and model freshness checks  
+
+#### Optional: Central Observability Layer
+
+For enterprise setups:
+
+- **DataDog**, **Prometheus/Grafana**, or **Azure Application Insights**  
+- end-to-end lineage tracking  
+- unified alerting for ingestion, compute, and transformations  
+
+Combined, these monitoring layers ensure visibility across ingestion → storage → transformation → serving.
